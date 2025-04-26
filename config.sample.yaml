@@ -1,0 +1,26 @@
+# config.sample.yaml for coach_demon
+
+# Your OpenAI API key (required)
+OPENAI_API_KEY: "<YOUR_OPENAI_API_KEY>"
+
+# Which model to use (e.g. "gpt-4", "gpt-4-turbo")
+OPENAI_MODEL: "gpt-4"
+
+# System prompt guiding the assistant's behavior
+OPENAI_SYSTEM_PROMPT: |
+  You are a Codeforces competitive programming and math coach.
+  Provide concise, actionable feedback tailored to competitive programming challenges.
+
+# Sampling temperature (0.0–1.0). Lower values = more deterministic.
+OPENAI_TEMPERATURE: 0.2
+
+# Request timeout in seconds
+OPENAI_TIMEOUT_SECONDS: 60
+
+# Port for HTTP & WebSocket server
+PORT: "12345"
+test:
+  OPENAI_MODEL: "o4-mini"    # cheaper + faster
+  MONGODB_URI: "mongodb://localhost:27017"
+  OPENAI_API_KEY: "<YOUR_OPENAI_API_KEY>"
+

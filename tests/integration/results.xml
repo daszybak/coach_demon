@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuites tests="2" failures="1" errors="0" time="27.900654">
+	<testsuite tests="2" failures="1" time="25.950000" name="coach_demon/tests/integration" timestamp="2025-04-26T18:59:51+02:00">
+		<properties>
+			<property name="go.version" value="go1.24.2 windows/amd64"></property>
+		</properties>
+		<testcase classname="coach_demon/tests/integration" name="TestLiveFetcher" time="20.000000">
+			<failure message="Failed" type="">=== RUN   TestLiveFetcher&#xA;    fetcher_live_test.go:31: Fetch failed: context deadline exceeded&#xA;--- FAIL: TestLiveFetcher (20.00s)&#xA;</failure>
+		</testcase>
+		<testcase classname="coach_demon/tests/integration" name="TestLiveOpenAI" time="5.800000"></testcase>
+	</testsuite>
+</testsuites>

@@ -1,0 +1,59 @@
+version: "3.8"
+
+services:
+  mongo:
+    image: mongo:7
+    restart: unless-stopped
+    environment:
+      MONGO_INITDB_DATABASE: coach_demon
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_data:/data/db
+
+  coach_demon:
+    build: .
+    depends_on:
+      - mongo
+    ports:
+      - "12345:12345"
+    volumes:
+      - ./config.yaml:/config.yaml:ro
+
+  fetcher:
+    image: browserless/chrome:latest
+    restart: unless-stopped
+    environment:
+      # ---------- performance ----------
+      PREBOOT_CHROME: "true"          # keep one browser warm
+      CHROME_REFRESH_TIME: "3600000"  # fresh instance every hour
+      MAX_CONCURRENT_SESSIONS: "2"    # don't open dozens of tabs
+
+      # ---------- stealth & language ----------
+      STEALTH: "true"                 # puppeteer-extra-plugin-stealth
+      DEFAULT_LAUNCH_ARGS: >
+        --no-sandbox                 --disable-dev-shm-usage
+        --window-size=1920,1080      --lang=en-US,en
+        --incognito                  # one clean profile per tab
+      DEFAULT_VIEWPORT: "1920,1080"
+
+      # ---------- simple auth token ----------
+      TOKEN: cf-fun    # (Docker stability)
+    ports:
+      - "3000:3000"
+
+  tests:
+    build:
+      context: .
+      target: tests
+    depends_on:
+      - mongo
+      - fetcher
+      - coach_demon
+    working_dir: /src
+    volumes:
+      - ./tests:/src/tests
+      - ./tests/reports:/reports
+      - ./config.yaml:/config.yaml:ro
+volumes:
+  mongo_data:

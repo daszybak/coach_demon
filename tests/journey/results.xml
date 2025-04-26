@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuites tests="1" failures="1" errors="0" time="46.545146">
+	<testsuite tests="1" failures="1" time="44.858000" name="coach_demon/tests/journey" timestamp="2025-04-26T19:25:18+02:00">
+		<properties>
+			<property name="go.version" value="go1.24.2 windows/amd64"></property>
+		</properties>
+		<testcase classname="coach_demon/tests/journey" name="TestJourney_FetcherAndOpenAI" time="44.710000">
+			<failure message="Failed" type="">=== RUN   TestJourney_FetcherAndOpenAI&#xA;2025/04/26 19:25:19 You are a Codeforces programming coach. I am sending you snapshots of my code at some points in time. So this code most of the time isn&#39;t the one I am  executing. I am also sending you my thoughts. The point of your coaching is that you give me feedback in some points in time . I will use this feedback so that I can improve my intuition and problem solving ability. Of course, if you see that my code is working&#xA; than you can ask more questions about the proof etc. Whatever you think is best for me to improve and become top competitive programmer.&#xA;    fetcher_and_openai_happy_path_test.go:41: fetch problem: cannot call fetcher: Post &#34;http://fetcher:3000/function?token=cf-fun&#34;: dial tcp: lookup fetcher: no such host&#xA;--- FAIL: TestJourney_FetcherAndOpenAI (44.71s)&#xA;</failure>
+		</testcase>
+	</testsuite>
+</testsuites>
