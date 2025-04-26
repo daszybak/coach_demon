@@ -46,3 +46,6 @@ Godeps/
 
 # Coverage reports
 *.coverprofile
+/tests/integration/tests/
+/tests/journey/tests/
+/tests/reports/
