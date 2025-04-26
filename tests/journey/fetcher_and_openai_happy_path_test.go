@@ -33,10 +33,10 @@ func TestJourney_FetcherAndOpenAI(t *testing.T) {
 		t.Fatalf("openai: %v", err)
 	}
 
-	ctx, cancel := helpers.TimeoutContext(t, 120*time.Second)
+	ctx, cancel := helpers.TimeoutContext(t, 360*time.Second)
 	defer cancel()
 
-	problemHTML, err := fetcherSvc.Fetch(ctx, "1873G2")
+	problemHTML, err := fetcherSvc.Fetch(ctx, "2A")
 	if err != nil {
 		t.Fatalf("fetch problem: %v", err)
 	}

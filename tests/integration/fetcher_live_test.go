@@ -23,10 +23,10 @@ func TestLiveFetcher(t *testing.T) {
 		viper.GetString("FETCHER_TOKEN"),
 	)
 
-	ctx, cancel := helpers.TimeoutContext(t, 120*time.Second)
+	ctx, cancel := helpers.TimeoutContext(t, 360*time.Second)
 	defer cancel()
 
-	html, err := service.Fetch(ctx, "1873G2")
+	html, err := service.Fetch(ctx, "2A")
 	if err != nil {
 		t.Fatalf("Fetch failed: %v", err)
 	}

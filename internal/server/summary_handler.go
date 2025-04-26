@@ -17,7 +17,7 @@ func makeSummaryHandler(ctx *app.App) http.HandlerFunc {
 		// 1️⃣ Fetch problem statement from database
 		statement, err := ctx.Store.GetStatement(problemID)
 		if err != nil {
-			ctx.Logger.Printf("failed to get statement for %s: %v", problemID, err)
+			ctx.Logger.Info().Msgf("failed to get statement for %s: %v", problemID, err)
 			http.Error(w, "internal error fetching statement", http.StatusInternalServerError)
 			return
 		}
@@ -29,7 +29,7 @@ func makeSummaryHandler(ctx *app.App) http.HandlerFunc {
 		// 2️⃣ Fetch all feedback entries
 		entries, err := ctx.Store.SummarizeFeedback(problemID)
 		if err != nil {
-			ctx.Logger.Printf("failed to summarize feedbacks for %s: %v", problemID, err)
+			ctx.Logger.Info().Msgf("failed to summarize feedbacks for %s: %v", problemID, err)
 			http.Error(w, "internal error fetching feedbacks", http.StatusInternalServerError)
 			return
 		}
@@ -53,7 +53,7 @@ func makeSummaryHandler(ctx *app.App) http.HandlerFunc {
 		// 4️⃣ Call OpenAI to get a nice summary
 		summary, err := ctx.AI.SummarizeHistory(statement, codeHistory, thoughtsHistory)
 		if err != nil {
-			ctx.Logger.Printf("failed to summarize history for %s: %v", problemID, err)
+			ctx.Logger.Info().Msgf("failed to summarize history for %s: %v", problemID, err)
 			http.Error(w, "internal error during summarization", http.StatusInternalServerError)
 			return
 		}
@@ -61,7 +61,7 @@ func makeSummaryHandler(ctx *app.App) http.HandlerFunc {
 		// 5️⃣ Respond to client
 		w.Header().Set("Content-Type", "application/json")
 		if err := json.NewEncoder(w).Encode(summary); err != nil {
-			ctx.Logger.Printf("failed to encode summary response: %v", err)
+			ctx.Logger.Info().Msgf("failed to encode summary response: %v", err)
 		}
 	}
 }

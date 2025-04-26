@@ -4,7 +4,7 @@ import (
 	"context"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
-	"log"
+	"github.com/rs/zerolog"
 	"net/http"
 	"time"
 )
@@ -42,7 +42,7 @@ func getRequestID(ctx context.Context) string {
 }
 
 // NewLogger returns a logger middleware using the provided logger
-func NewLogger(logger *log.Logger) func(http.Handler) http.Handler {
+func NewLogger(logger *zerolog.Logger) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			ww := middleware.NewWrapResponseWriter(w, r.ProtoMajor)
@@ -53,7 +53,7 @@ func NewLogger(logger *log.Logger) func(http.Handler) http.Handler {
 			dur := time.Since(start)
 			reqID := getRequestID(r.Context())
 
-			logger.Printf("[%s] %s %s %d %s", reqID, r.Method, r.URL.Path, ww.Status(), dur)
+			logger.Info().Msgf("[%s] %s %s %d %s", reqID, r.Method, r.URL.Path, ww.Status(), dur)
 		})
 	}
 }

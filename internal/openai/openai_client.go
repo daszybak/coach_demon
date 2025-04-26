@@ -39,9 +39,6 @@ func NewClient(cfg Config, client option.HTTPClient) (*Client, error) {
 	if cfg.Model == "" {
 		cfg.Model = "o3"
 	}
-	if cfg.SystemPrompt != "" {
-		log.Printf("%s", cfg.SystemPrompt)
-	}
 	if cfg.Temperature <= 0 || cfg.Temperature > 1 {
 		cfg.Temperature = 0.2
 	}

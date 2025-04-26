@@ -33,6 +33,10 @@ Godeps/
 .idea/
 *.iml
 
+./tests/reports/*
+./tests/integration/reports
+./tests/journey/reports
+
 # macOS Finder files
 .DS_Store
 

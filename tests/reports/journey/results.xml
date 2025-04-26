@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuites tests="1" failures="1" errors="0" time="3.862411">
+	<testsuite tests="1" failures="1" time="3.099000" name="coach_demon/tests/journey" timestamp="2025-04-26T18:36:51Z">
+		<properties>
+			<property name="go.version" value="go1.24.2 linux/amd64"></property>
+		</properties>
+		<testcase classname="coach_demon/tests/journey" name="TestJourney_FetcherAndOpenAI" time="3.100000">
+			<failure message="Failed" type="">=== RUN   TestJourney_FetcherAndOpenAI&#xA;    fetcher_and_openai_happy_path_test.go:44: fetched empty problem statement&#xA;--- FAIL: TestJourney_FetcherAndOpenAI (3.10s)&#xA;</failure>
+		</testcase>
+	</testsuite>
+</testsuites>

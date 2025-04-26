@@ -1,10 +1,11 @@
 package main
 
 import (
-	"log"
 	"net/http"
 	"os"
 
+	"github.com/rs/zerolog"
+	"github.com/rs/zerolog/log"
 	"github.com/spf13/viper"
 
 	"coach_demon/internal/app"
@@ -20,34 +21,38 @@ func initConfig() {
 	viper.AddConfigPath(".")
 	viper.AutomaticEnv()
 	if err := viper.ReadInConfig(); err != nil {
-		log.Printf("warning: couldn't read config file, falling back to env only: %v", err)
+		log.Warn().Err(err).Msg("couldn't read config file, falling back to env only")
 	}
 }
 
 func main() {
+	// Pretty console output if in dev mode
+	log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stdout})
+
 	initConfig()
 
-	logger := log.New(os.Stdout, "", log.LstdFlags|log.Lshortfile)
+	// Setup logger with some defaults (ISO timestamp)
+	logger := zerolog.New(os.Stdout).With().Timestamp().Logger()
 
-	mStore, err := storage.NewMongoManager(viper.GetString("MONGODB_URI"), logger)
+	mStore, err := storage.NewMongoManager(viper.GetString("MONGODB_URI"), &logger)
 	if err != nil {
-		logger.Fatalf("storage: %v", err)
+		logger.Fatal().Err(err).Msg("storage setup failed")
 	}
 
 	aiCfg := openai.Config{
 		APIKey:       viper.GetString("OPENAI_API_KEY"),
 		Model:        viper.GetString("OPENAI_MODEL"),
-		SystemPrompt: viper.GetString("OPENAI_MODEL"),
+		SystemPrompt: viper.GetString("OPENAI_SYSTEM_PROMPT"),
 	}
 	httpClient := &http.Client{}
 	aiClient, err := openai.NewClient(aiCfg, httpClient)
 	if err != nil {
-		logger.Fatalf("openai: %v", err)
+		logger.Fatal().Err(err).Msg("openai client setup failed")
 	}
 
 	fetchURL := viper.GetString("FETCHER_ENDPOINT")
 	if fetchURL == "" {
-		logger.Fatal("FETCHER_ENDPOINT missing in config")
+		logger.Fatal().Msg("FETCHER_ENDPOINT missing in config")
 	}
 	fetchTok := viper.GetString("FETCHER_TOKEN")
 	fetchSvc := fetcher.NewBrowserless(fetchURL, fetchTok)
@@ -56,16 +61,16 @@ func main() {
 		Store:  mStore,
 		AI:     aiClient,
 		Fetch:  fetchSvc,
-		Logger: logger,
+		Logger: &logger,
 	}
 
 	addr := ":" + viper.GetString("PORT")
 	if addr == ":" {
 		addr = ":12345"
 	}
-	logger.Printf("🚀 Coach listening on %s", addr)
+	logger.Info().Str("addr", addr).Msg("🚀 Coach server starting")
 
 	if err := http.ListenAndServe(addr, server.New(appCtx)); err != nil {
-		logger.Fatalf("http: %v", err)
+		logger.Fatal().Err(err).Msg("server error")
 	}
 }
