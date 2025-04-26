@@ -34,8 +34,8 @@ Godeps/
 *.iml
 
 ./tests/reports/*
-./tests/integration/reports
-./tests/journey/reports
+./tests/integration/tests
+./tests/journey/tests
 
 # macOS Finder files
 .DS_Store
