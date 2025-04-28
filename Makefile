@@ -49,9 +49,13 @@ test-all-local:
 	@$(MAKE) test-integration-local
 	@$(MAKE) test-journey-local
 
+start-all: docker-up
+	./chrome.bat
+	node ./fetcher/index.js
+
 # --- Docker helpers ------------------------------------------------
 docker-up:
-	docker compose up --build
+	docker compose up --build -d
 
 docker-down:
 	docker compose down

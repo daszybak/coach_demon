@@ -49,3 +49,6 @@ Godeps/
 /tests/integration/tests/
 /tests/journey/tests/
 /tests/reports/
+
+/chrome-user-data
+.chrome-bat

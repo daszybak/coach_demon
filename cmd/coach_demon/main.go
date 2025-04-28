@@ -27,12 +27,15 @@ func initConfig() {
 
 func main() {
 	// Pretty console output if in dev mode
-	log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stdout})
+
+	log.Logger = zerolog.New(os.Stdout).With().Timestamp().Logger()
+
+	log.Info().Msg("Starting app")
 
 	initConfig()
 
 	// Setup logger with some defaults (ISO timestamp)
-	logger := zerolog.New(os.Stdout).With().Timestamp().Logger()
+	logger := log.Logger
 
 	mStore, err := storage.NewMongoManager(viper.GetString("MONGODB_URI"), &logger)
 	if err != nil {

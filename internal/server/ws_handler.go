@@ -4,6 +4,7 @@ import (
 	"coach_demon/internal/app"
 	"coach_demon/internal/storage"
 	"encoding/json"
+	"errors"
 	"net/http"
 	"time"
 
@@ -16,81 +17,76 @@ type EditorMessage struct {
 	Thoughts  string `json:"thoughts"`
 }
 
-var upgrader = websocket.Upgrader{}
+var upgrader = websocket.Upgrader{
+	CheckOrigin: func(r *http.Request) bool { return true }, // allow any frontend
+}
 
 func makeWSHandler(ctx *app.App) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		conn, err := upgrader.Upgrade(w, r, nil)
 		if err != nil {
-			ctx.Logger.Info().Msgf("couldn't upgrade WebSocket: %v", err)
+			ctx.Logger.Info().Err(err).Msg("could not upgrade WebSocket")
 			return
 		}
 		defer conn.Close()
 
+		ctx.Logger.Info().Msg("WebSocket connection established")
+
 		for {
 			_, raw, err := conn.ReadMessage()
 			if err != nil {
-				ctx.Logger.Info().Msgf("WebSocket read error: %v", err)
-				return
+				var closeErr *websocket.CloseError
+				ok := errors.As(err, &closeErr)
+				if ok {
+					ctx.Logger.Info().Int("code", closeErr.Code).Str("text", closeErr.Text).Msg("WebSocket closed normally")
+				} else {
+					ctx.Logger.Warn().Err(err).Msg("WebSocket temporary read error")
+				}
+				time.Sleep(1 * time.Second) // wait a bit before next read
+				continue
 			}
 
 			var in EditorMessage
 			if err := json.Unmarshal(raw, &in); err != nil {
-				ctx.Logger.Info().Msgf("couldn't parse JSON: %v", err)
+				ctx.Logger.Warn().Err(err).Msg("could not parse incoming JSON")
 				continue
 			}
 
-			now := time.Now().UTC()
-
-			// 🧠 Load or fetch problem statement
 			statement, err := ctx.Store.GetStatement(in.ProblemID)
 			if err != nil {
-				ctx.Logger.Info().Msgf("load statement error: %v", err)
+				ctx.Logger.Warn().Err(err).Msg("load statement error")
 				continue
 			}
 			if statement == "" {
-				ctx.Logger.Info().Msgf("statement not found in DB, fetching online for %s", in.ProblemID)
+				ctx.Logger.Info().Msgf("fetching missing statement for %s", in.ProblemID)
 				statement, err = ctx.Fetch.Fetch(r.Context(), in.ProblemID)
 				if err != nil {
-					ctx.Logger.Info().Msgf("fetch statement error %s: %v", in.ProblemID, err)
+					ctx.Logger.Warn().
+						Err(err).
+						Str("problemId", in.ProblemID).
+						Msg("fetch error")
 					continue
 				}
-				ctx.Logger.Info().Msgf("fetched statement for %s: %s", in.ProblemID, trimForLog(statement))
-				if err := ctx.Store.SaveStatement(in.ProblemID, statement); err != nil {
-					ctx.Logger.Info().Msgf("save statement error: %v", err)
+				if statement == "" {
+					ctx.Logger.Warn().
+						Str("problemId", in.ProblemID).
+						Msg("fetched empty statement")
+					continue
 				}
-			} else {
-				ctx.Logger.Info().Msgf("loaded cached statement for %s: %s", in.ProblemID, trimForLog(statement))
+				_ = ctx.Store.SaveStatement(in.ProblemID, statement)
 			}
 
-			// 📦 Always snapshot user code and thoughts
-			err = ctx.Store.SaveFeedback(storage.FeedbackEntry{
-				ProblemID: in.ProblemID,
-				Timestamp: now,
-				Code:      in.Code,
-				Thoughts:  in.Thoughts,
-			})
-			if err != nil {
-				ctx.Logger.Info().Msgf("store code snapshot: %v", err)
-			}
-
-			// 🧠 OpenAI feedback every minute
-			latest, err := ctx.Store.GetLatestFeedback(in.ProblemID)
-			if err != nil {
-				ctx.Logger.Info().Msgf("fetch latest feedback: %v", err)
-				continue
-			}
+			latest, _ := ctx.Store.GetLatestFeedback(in.ProblemID)
 			if latest == nil || time.Since(latest.Timestamp) > time.Minute {
-				ctx.Logger.Info().Msgf("requesting OpenAI feedback for %s", in.ProblemID)
+				ctx.Logger.Info().Msgf("asking OpenAI for new feedback for %s", in.ProblemID)
 				fb, err := ctx.AI.GetFeedback(in.Code, in.Thoughts, statement)
 				if err != nil {
-					ctx.Logger.Info().Msgf("openai error: %v", err)
+					ctx.Logger.Warn().Err(err).Msg("OpenAI feedback error")
 					continue
 				}
-				now = time.Now().UTC()
 				err = ctx.Store.SaveFeedback(storage.FeedbackEntry{
 					ProblemID:            in.ProblemID,
-					Timestamp:            now,
+					Timestamp:            time.Now().UTC(),
 					Statement:            statement,
 					Code:                 in.Code,
 					Thoughts:             in.Thoughts,
@@ -100,17 +96,9 @@ func makeWSHandler(ctx *app.App) http.HandlerFunc {
 					OptimalMetaCognition: fb.OptimalMetaCognition,
 				})
 				if err != nil {
-					ctx.Logger.Info().Msgf("store OpenAI feedback: %v", err)
+					ctx.Logger.Warn().Err(err).Msg("saving OpenAI feedback failed")
 				}
 			}
 		}
 	}
-}
-
-func trimForLog(s string) string {
-	const MAX = 200
-	if len(s) > MAX {
-		return s[:MAX] + "..."
-	}
-	return s
 }

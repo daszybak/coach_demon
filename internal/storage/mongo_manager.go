@@ -20,11 +20,9 @@ func NewMongoManager(uri string, logger *zerolog.Logger) (*MongoManager, error) 
 	clientOpts := options.Client().ApplyURI(uri)
 	client, err := mongo.Connect(context.Background(), clientOpts)
 	if err != nil {
-		Logger.Info().Msgf("failed to connect to MongoDB: %v", err)
 		return nil, fmt.Errorf("cannot connect to MongoDB: %w", err)
 	}
 	if err := client.Ping(context.Background(), nil); err != nil {
-		Logger.Info().Msgf("failed to ping MongoDB: %v", err)
 		return nil, fmt.Errorf("cannot ping MongoDB: %w", err)
 	}
 
@@ -42,7 +40,7 @@ func NewMongoManager(uri string, logger *zerolog.Logger) (*MongoManager, error) 
 func (m *MongoManager) SaveFeedback(entry FeedbackEntry) error {
 	_, err := m.feedbacks.InsertOne(context.Background(), entry)
 	if err != nil {
-		m.Logger.Info().Msgf("failed to insert feedback: %v", err)
+		m.logger.Info().Msgf("failed to insert feedback: %v", err)
 		return fmt.Errorf("failed to insert feedback: %w", err)
 	}
 	return nil
@@ -59,7 +57,7 @@ func (m *MongoManager) GetLatestFeedback(problemID string) (*FeedbackEntry, erro
 		if errors.Is(err, mongo.ErrNoDocuments) {
 			return nil, nil
 		}
-		m.Logger.Info().Msgf("failed to find latest feedback: %v", err)
+		m.logger.Info().Msgf("failed to find latest feedback: %v", err)
 		return nil, fmt.Errorf("failed to find latest feedback: %w", err)
 	}
 	return &entry, nil
@@ -70,18 +68,18 @@ func (m *MongoManager) SummarizeFeedback(problemID string) ([]FeedbackEntry, err
 	filter := bson.M{"problemid": problemID}
 	cursor, err := m.feedbacks.Find(context.Background(), filter)
 	if err != nil {
-		m.Logger.Info().Msgf("failed to query feedbacks: %v", err)
+		m.logger.Info().Msgf("failed to query feedbacks: %v", err)
 		return nil, fmt.Errorf("failed to query feedbacks: %w", err)
 	}
 	defer func() {
 		if cerr := cursor.Close(context.Background()); cerr != nil {
-			m.Logger.Info().Msgf("failed to close cursor: %v", cerr)
+			m.logger.Info().Msgf("failed to close cursor: %v", cerr)
 		}
 	}()
 
 	var entries []FeedbackEntry
 	if err := cursor.All(context.Background(), &entries); err != nil {
-		m.Logger.Info().Msgf("failed to decode feedbacks: %v", err)
+		m.logger.Info().Msgf("failed to decode feedbacks: %v", err)
 		return nil, fmt.Errorf("failed to decode feedbacks: %w", err)
 	}
 	return entries, nil
@@ -98,7 +96,7 @@ func (m *MongoManager) GetStatement(problemID string) (string, error) {
 		if errors.Is(err, mongo.ErrNoDocuments) {
 			return "", nil
 		}
-		m.Logger.Info().Msgf("failed to fetch statement: %v", err)
+		m.logger.Info().Msgf("failed to fetch statement: %v", err)
 		return "", fmt.Errorf("failed to fetch statement: %w", err)
 	}
 	return result.Statement, nil
@@ -117,7 +115,7 @@ func (m *MongoManager) SaveStatement(problemID, statement string) error {
 
 	_, err := m.statements.UpdateOne(context.Background(), filter, update, opts)
 	if err != nil {
-		m.Logger.Info().Msgf("failed to save statement: %v", err)
+		m.logger.Info().Msgf("failed to save statement: %v", err)
 		return fmt.Errorf("failed to save statement: %w", err)
 	}
 	return nil

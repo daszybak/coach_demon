@@ -12,7 +12,9 @@ services:
       - mongo_data:/data/db
 
   coach_demon:
-    build: .
+    build:
+      context: .
+      target: runtime
     depends_on:
       - mongo
     ports:
@@ -20,35 +22,11 @@ services:
     volumes:
       - ./config.yaml:/config.yaml:ro
 
-  fetcher:
-    image: browserless/chrome:latest
-    restart: unless-stopped
-    environment:
-      # ---------- performance ----------
-      PREBOOT_CHROME: "true"          # keep one browser warm
-      CHROME_REFRESH_TIME: "3600000"  # fresh instance every hour
-      MAX_CONCURRENT_SESSIONS: "2"    # don't open dozens of tabs
-
-      # ---------- stealth & language ----------
-      STEALTH: "true"                 # puppeteer-extra-plugin-stealth
-      DEFAULT_LAUNCH_ARGS: >
-        --no-sandbox                 --disable-dev-shm-usage
-        --window-size=1920,1080      --lang=en-US,en
-        --incognito                  # one clean profile per tab
-      DEFAULT_VIEWPORT: "1920,1080"
-
-      # ---------- simple auth token ----------
-      TOKEN: cf-fun    # (Docker stability)
-    ports:
-      - "3000:3000"
-
-  logspout:
-    image: gliderlabs/logspout:v3.2.14
+  dozzle:
+    image: amir20/dozzle
     restart: always
-    environment:
-      - ROUTE_URIS=filter.name=coach_demon,fetcher,mongo,tests
     ports:
-      - "8000:80"   # Web UI will be available on localhost:8000
+      - "8080:8080"
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
 
@@ -58,7 +36,6 @@ services:
       target: tests
     depends_on:
       - mongo
-      - fetcher
       - coach_demon
     working_dir: /src
     volumes:

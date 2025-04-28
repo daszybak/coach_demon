@@ -12,7 +12,7 @@ type Browserless struct {
 }
 
 func (b *Browserless) Fetch(ctx context.Context, id string) (string, error) {
-	return codeforces.FetchStatement(ctx, b.BaseURL, b.Token, id)
+	return codeforces.FetchStatement(ctx, b.BaseURL, id)
 }
 
 // Constructor, so callers never new() directly.
