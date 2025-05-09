@@ -22,6 +22,24 @@ services:
     volumes:
       - ./config.yaml:/config.yaml:ro
 
+  flask_scraper:
+    build:
+      context: ./fetcher
+    ports:
+      - "3001:3001"
+    depends_on:
+      - mongo
+    environment:
+      - FLASK_ENV=production
+
+  view:
+    build:
+      context: ./view
+    ports:
+      - "3002:80"
+    depends_on:
+      - coach_demon
+
   dozzle:
     image: amir20/dozzle
     restart: always

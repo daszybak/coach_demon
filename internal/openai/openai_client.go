@@ -65,10 +65,9 @@ func NewClient(cfg Config, client option.HTTPClient) (*Client, error) {
 // --------------------------------------------------------------------
 
 type Feedback struct {
-	Feedback             string   `json:"feedback" jsonschema_description:"Feedback of the quality of my thinking process"`
-	Suggestions          []string `json:"suggestions" jsonschema_description:"Suggestions of how I should improve my code and thinking in this situation"`
-	Proofs               []string `json:"proofs" jsonschema_description:"Mathematical proofs or logical proofs for every step of this problem"`
-	OptimalMetaCognition []string `json:"optima_meta_cognition" jsonschema_description:"What a top competitive programmer would be thinking in this situation"`
+	Feedback             string `json:"feedback" jsonschema_description:"Feedback of the quality of my thinking process"`
+	Proof                string `json:"proof" jsonschema_description:"Mathematical proofs or logical proofs for every step of this problem"`
+	OptimalMetaCognition string `json:"optima_meta_cognition" jsonschema_description:"What a top competitive programmer would be thinking in this situation"`
 }
 
 var FeedbackResponseSchema = GenerateSchema[Feedback]()
@@ -122,32 +121,39 @@ func (c *Client) GetFeedback(code, thoughts, problem string) (Feedback, error) {
 	return fb, nil
 }
 
-type HistorySummary struct {
-	Summary       string   `json:"summary" jsonschema_description:"Summary of my overall code and thinking evolution"`
-	MainMistakes  []string `json:"main_mistakes" jsonschema_description:"Biggest mistakes I made across time"`
-	GoodPractices []string `json:"good_practices" jsonschema_description:"Good practices I demonstrated"`
+type Summary struct {
+	Feedback             string `json:"feedback" jsonschema_description:"Summarize the feedback that I received from AI."`
+	Proof                string `json:"summary" jsonschema_description:"Summarize the most important proofs."`
+	OptimalMetaCognition string `json:"optimal_meta_cognition" jsonschema_description:"Summarize the optimal meta cognition that a top competitive programmer should have based on the AI inputs."`
 }
 
-var HistorySummarySchema = GenerateSchema[HistorySummary]()
+var SummarySchema = GenerateSchema[Summary]()
 
-func (c *Client) SummarizeHistory(statement string, codes []string, thoughts []string) (HistorySummary, error) {
+func (c *Client) SummarizeFeedback(statement string, feedbacks, proofs, optimalMetaCognitions []string) (Summary, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), c.timeout)
 	defer cancel()
 
 	// Compose the full history text
 	history := "Problem statement:\n" + statement + "\n\n"
 
-	if len(codes) > 0 {
-		history += "Code attempts:\n"
-		for i, code := range codes {
-			history += fmt.Sprintf("Attempt #%d:\n%s\n\n", i+1, code)
+	if len(feedbacks) > 0 {
+		history += "Feedbacks:\n"
+		for i, feedback := range feedbacks {
+			history += fmt.Sprintf("Feedback #%d:\n%s\n\n", i+1, feedback)
 		}
 	}
 
-	if len(thoughts) > 0 {
-		history += "Thoughts history:\n"
-		for i, thought := range thoughts {
-			history += fmt.Sprintf("Thought #%d:\n%s\n\n", i+1, thought)
+	if len(proofs) > 0 {
+		history += "Proofs:\n"
+		for i, proof := range proofs {
+			history += fmt.Sprintf("Proof #%d:\n%s\n\n", i+1, proof)
+		}
+	}
+
+	if len(optimalMetaCognitions) > 0 {
+		history += "Optimal Meta Cognitions:\n"
+		for i, oMC := range optimalMetaCognitions {
+			history += fmt.Sprintf("Optimal Meta Cognition #%d:\n%s\n\n", i+1, oMC)
 		}
 	}
 
@@ -162,7 +168,7 @@ func (c *Client) SummarizeHistory(statement string, codes []string, thoughts []s
 			Format: responses.ResponseFormatTextConfigUnionParam{
 				OfJSONSchema: &responses.ResponseFormatTextJSONSchemaConfigParam{
 					Name:        "coach_summary",
-					Schema:      HistorySummarySchema,
+					Schema:      SummarySchema,
 					Description: openai.String("Structured history summary"),
 					Strict:      openai.Bool(true),
 					Type:        "json_schema",
@@ -171,16 +177,16 @@ func (c *Client) SummarizeHistory(statement string, codes []string, thoughts []s
 		},
 	})
 	if err != nil {
-		return HistorySummary{}, fmt.Errorf("failed to call OpenAI API for summary: %w", err)
+		return Summary{}, fmt.Errorf("failed to call OpenAI API for summary: %w", err)
 	}
 
 	log.Printf("%v", resp.OutputText())
 	raw := resp.OutputText()
-	var summary HistorySummary
+	var summary Summary
 
 	err = json.Unmarshal([]byte(raw), &summary)
 	if err != nil {
-		summary.Summary = raw
+		summary.Feedback = raw
 		return summary, fmt.Errorf("failed to unmarshal OpenAI JSON summary: %w", err)
 	}
 

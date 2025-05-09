@@ -16,7 +16,8 @@ func New(ctx *app.App) http.Handler {
 		CORS,
 	)
 
-	r.Get("/summary/{problemId}", makeSummaryHandler(ctx))
+	r.Get("/statements", getStatements(ctx))
+	r.Get("/summary/{problemId}", getSummary(ctx))
 	r.Handle("/ws", makeWSHandler(ctx))
 	return r
 }

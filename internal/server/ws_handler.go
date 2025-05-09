@@ -57,9 +57,9 @@ func makeWSHandler(ctx *app.App) http.HandlerFunc {
 				ctx.Logger.Warn().Err(err).Msg("load statement error")
 				continue
 			}
-			if statement == "" {
+			if statement == nil {
 				ctx.Logger.Info().Msgf("fetching missing statement for %s", in.ProblemID)
-				statement, err = ctx.Fetch.Fetch(r.Context(), in.ProblemID)
+				codeforcesStatement, err := ctx.Fetch.Fetch(r.Context(), in.ProblemID)
 				if err != nil {
 					ctx.Logger.Warn().
 						Err(err).
@@ -67,19 +67,22 @@ func makeWSHandler(ctx *app.App) http.HandlerFunc {
 						Msg("fetch error")
 					continue
 				}
-				if statement == "" {
+				if codeforcesStatement == "" {
 					ctx.Logger.Warn().
 						Str("problemId", in.ProblemID).
-						Msg("fetched empty statement")
+						Msg("fetched empty statement from codeforces")
 					continue
 				}
-				_ = ctx.Store.SaveStatement(in.ProblemID, statement)
+				_ = ctx.Store.SaveStatement(storage.StatementEntry{
+					Statement: codeforcesStatement,
+					ProblemID: in.ProblemID,
+				})
 			}
 
 			latest, _ := ctx.Store.GetLatestFeedback(in.ProblemID)
 			if latest == nil || time.Since(latest.Timestamp) > time.Minute {
 				ctx.Logger.Info().Msgf("asking OpenAI for new feedback for %s", in.ProblemID)
-				fb, err := ctx.AI.GetFeedback(in.Code, in.Thoughts, statement)
+				fb, err := ctx.AI.GetFeedback(in.Code, in.Thoughts, statement.Statement)
 				if err != nil {
 					ctx.Logger.Warn().Err(err).Msg("OpenAI feedback error")
 					continue
@@ -87,12 +90,10 @@ func makeWSHandler(ctx *app.App) http.HandlerFunc {
 				err = ctx.Store.SaveFeedback(storage.FeedbackEntry{
 					ProblemID:            in.ProblemID,
 					Timestamp:            time.Now().UTC(),
-					Statement:            statement,
 					Code:                 in.Code,
 					Thoughts:             in.Thoughts,
 					Feedback:             fb.Feedback,
-					Suggestions:          fb.Suggestions,
-					Proofs:               fb.Proofs,
+					Proof:                fb.Proof,
 					OptimalMetaCognition: fb.OptimalMetaCognition,
 				})
 				if err != nil {

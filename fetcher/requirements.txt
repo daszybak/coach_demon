@@ -1,0 +1,3 @@
+Flask
+curl_cffi
+beautifulsoup4
